@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sentinel — AI Security Analyzer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f8f9fc;
+  --surface:#ffffff;
+  --surface2:#f2f4f8;
+  --border:#e2e6ef;
+  --border2:#cdd2e0;
+  --text:#111827;
+  --text2:#4b5563;
+  --text3:#9ca3af;
+  --accent:#2563eb;
+  --accent-bg:#eff4ff;
+  --accent-border:#bfcffd;
+  --red:#dc2626;
+  --red-bg:#fef2f2;
+  --red-border:#fecaca;
+  --amber:#d97706;
+  --amber-bg:#fffbeb;
+  --amber-border:#fde68a;
+  --green:#059669;
+  --green-bg:#ecfdf5;
+  --green-border:#a7f3d0;
+  --purple:#7c3aed;
+  --purple-bg:#f5f3ff;
+  --purple-border:#ddd6fe;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+  --radius:8px;
+  --radius-lg:12px;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;display:flex;flex-direction:column}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;font-weight:500;font-size:16px;letter-spacing:-.01em}
+.logo-shield{width:28px;height:28px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px}
+.logo-sub{font-size:12px;color:var(--text3);font-weight:400;margin-left:2px}
+.header-actions{display:flex;align-items:center;gap:8px}
+.hbadge{font-size:11px;font-family:var(--mono);padding:3px 10px;border-radius:20px;font-weight:500}
+.hbadge-blue{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+.hbadge-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+
+.layout{display:grid;grid-template-columns:200px 1fr 280px;flex:1;min-height:0}
+
+.sidebar{border-right:1px solid var(--border);padding:12px 8px;display:flex;flex-direction:column;gap:2px;background:var(--surface)}
+.nav-section{font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:.1em;padding:12px 10px 4px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;transition:all .12s;border:1px solid transparent;user-select:none}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-border)}
+.nav-item svg{width:15px;height:15px;flex-shrink:0;stroke-width:1.8}
+.nav-divider{height:1px;background:var(--border);margin:6px 0}
+.sidebar-footer{margin-top:auto;padding:10px 10px 0;border-top:1px solid var(--border)}
+.model-pill{font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;align-items:center;gap:6px;padding:6px 0}
+.model-pill b{color:var(--accent);font-weight:500}
+
+.main{display:flex;flex-direction:column;overflow:hidden}
+.toolbar{padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--surface);flex-wrap:wrap}
+.tool-btn{padding:6px 12px;border:1px solid var(--border2);border-radius:var(--radius);font-size:12px;font-family:var(--mono);color:var(--text2);cursor:pointer;background:var(--surface);transition:all .12s;display:flex;align-items:center;gap:5px}
+.tool-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.tool-btn.active-tool{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tool-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+
+.content{flex:1;overflow-y:auto;padding:20px;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+
+.setup-card{background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius-lg);padding:14px 16px;margin-bottom:16px}
+.setup-title{font-size:12px;font-family:var(--mono);font-weight:500;color:var(--amber);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.setup-body{font-size:13px;color:#92400e;line-height:1.6;margin-bottom:10px}
+.setup-row{display:flex;gap:6px}
+.setup-input{flex:1;border:1px solid var(--border2);border-radius:var(--radius);padding:7px 10px;font-family:var(--mono);font-size:12px;color:var(--text);background:var(--surface);outline:none;transition:border-color .15s}
+.setup-input:focus{border-color:var(--accent)}
+.setup-input::placeholder{color:var(--text3)}
+.setup-save{background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:7px 14px;font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer;transition:opacity .12s;white-space:nowrap}
+.setup-save:hover{opacity:.85}
+
+.analyzer-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:16px;overflow:hidden}
+.analyzer-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.analyzer-title{font-size:12px;font-family:var(--mono);font-weight:500;color:var(--text2);display:flex;align-items:center;gap:6px}
+.analyzer-title .dot{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+.mode-chips{display:flex;gap:4px;flex-wrap:wrap;padding:10px 16px 0}
+.chip{padding:4px 10px;border:1px solid var(--border2);border-radius:20px;font-size:11px;font-family:var(--mono);color:var(--text2);cursor:pointer;transition:all .12s;user-select:none}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.analyzer-input-wrap{padding:10px 16px 14px;display:flex;gap:8px;align-items:flex-end}
+textarea.ai{flex:1;border:1px solid var(--border2);border-radius:var(--radius);padding:10px 12px;font-family:var(--mono);font-size:12.5px;color:var(--text);background:var(--surface2);outline:none;resize:vertical;min-height:70px;line-height:1.6;transition:border-color .15s}
+textarea.ai:focus{border-color:var(--accent);background:var(--surface)}
+textarea.ai::placeholder{color:var(--text3)}
+.run-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:10px 18px;font-family:var(--mono);font-size:12px;font-weight:500;cursor:pointer;letter-spacing:.04em;transition:opacity .12s, transform .1s;white-space:nowrap;align-self:flex-end}
+.run-btn:hover{opacity:.88}
+.run-btn:active{transform:scale(.97)}
+.run-btn:disabled{opacity:.4;cursor:not-allowed}
+
+.result-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:12px;overflow:hidden}
+.result-top{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.result-label{font-family:var(--mono);font-size:11px;color:var(--text3);display:flex;align-items:center;gap:6px}
+.badges{display:flex;gap:5px;align-items:center;flex-wrap:wrap}
+.badge{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:4px;font-weight:500}
+.badge-blue{background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-border)}
+.badge-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.badge-amber{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.badge-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge-purple{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+.result-body{padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.75;color:var(--text2);white-space:pre-wrap;word-break:break-word}
+.result-body b{color:var(--text);font-weight:500}
+.result-body .r{color:var(--red)}
+.result-body .g{color:var(--green)}
+.result-body .a{color:var(--amber)}
+.result-body .p{color:var(--purple)}
+.result-body .bl{color:var(--accent)}
+.result-footer{padding:8px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.act-btn{background:none;border:1px solid var(--border2);border-radius:var(--radius);color:var(--text3);padding:4px 10px;font-size:11px;font-family:var(--mono);cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:4px}
+.act-btn:hover{border-color:var(--accent);color:var(--accent)}
+.ts{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--text3)}
+
+.loading-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.spinner{width:16px;height:16px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{font-family:var(--mono);font-size:12px;color:var(--text3)}
+.loading-bar{height:2px;background:var(--border2);border-radius:1px;margin-bottom:12px;overflow:hidden}
+.loading-bar::after{content:'';display:block;height:100%;width:40%;background:var(--accent);border-radius:1px;animation:sweep 1s ease-in-out infinite}
+@keyframes sweep{0%{transform:translateX(-150%)}100%{transform:translateX(350%)}}
+
+.right-panel{border-left:1px solid var(--border);background:var(--surface);display:flex;flex-direction:column;overflow:hidden}
+.rp-header{padding:12px 16px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--text3);font-weight:500;letter-spacing:.06em;display:flex;justify-content:space-between;align-items:center}
+.rp-content{flex:1;overflow-y:auto;padding:12px;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.finding-card{border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--border2)}
+.finding-card.critical{border-left-color:var(--red)}
+.finding-card.high{border-left-color:var(--amber)}
+.finding-card.medium{border-left-color:var(--accent)}
+.finding-card.low{border-left-color:var(--green)}
+.finding-card.info{border-left-color:var(--purple)}
+.finding-type{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.06em}
+.finding-val{font-family:var(--mono);font-size:12px;color:var(--text);line-height:1.4;word-break:break-all}
+.finding-sev{font-family:var(--mono);font-size:10px;margin-top:4px}
+.empty-rp{padding:24px 12px;text-align:center;color:var(--text3);font-family:var(--mono);font-size:11px;line-height:1.8}
+.empty-icon{font-size:24px;opacity:.3;margin-bottom:8px}
+
+.score-ring-wrap{padding:16px;border-bottom:1px solid var(--border)}
+.score-label{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:10px;letter-spacing:.06em}
+.score-ring{width:72px;height:72px;margin:0 auto 10px}
+.score-ring svg{width:100%;height:100%}
+.score-number{font-family:var(--mono);font-size:22px;font-weight:500;text-align:center}
+.score-desc{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:center;margin-top:2px}
+.score-bars{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.score-row{display:flex;align-items:center;gap:8px}
+.score-row-label{font-family:var(--mono);font-size:10px;color:var(--text2);width:72px;flex-shrink:0}
+.score-bar-bg{flex:1;height:4px;background:var(--border2);border-radius:2px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:2px;transition:width .4s}
+.score-row-val{font-family:var(--mono);font-size:10px;color:var(--text3);width:24px;text-align:right;flex-shrink:0}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+::-webkit-scrollbar-track{background:transparent}
+
+.footer-bar{padding:8px 20px;border-top:1px solid var(--border);background:var(--surface);font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;align-items:center;gap:8px}
+.footer-bar::before{content:'⚠';color:var(--amber)}
+
+@media(max-width:900px){.layout{grid-template-columns:1fr}.sidebar,.right-panel{display:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-shield">🛡</div>
+    Sentinel
+    <span class="logo-sub">/ Security Analyzer</span>
+  </div>
+  <div class="header-actions">
+    <span class="hbadge hbadge-blue" id="api-badge">NO API KEY</span>
+    <span class="hbadge hbadge-green">FREE PLAN</span>
+  </div>
+</header>
+
+<div class="layout">
+
+  <div class="sidebar">
+    <div class="nav-section">Analyzers</div>
+    <div class="nav-item active" onclick="setView('vuln',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Vulnerability scan
+    </div>
+    <div class="nav-item" onclick="setView('code',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+      Code review
+    </div>
+    <div class="nav-item" onclick="setView('log',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Log analysis
+    </div>
+    <div class="nav-item" onclick="setView('threat',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Threat modeling
+    </div>
+    <div class="nav-item" onclick="setView('phish',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Phishing detector
+    </div>
+    <div class="nav-item" onclick="setView('policy',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Policy reviewer
+    </div>
+    <div class="nav-item" onclick="setView('cvss',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      CVSS scorer
+    </div>
+    <div class="nav-item" onclick="setView('ioc',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      IOC extractor
+    </div>
+    <div class="nav-divider"></div>
+    <div class="nav-item" onclick="exportAll()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Export report
+    </div>
+    <div class="nav-item" onclick="clearAll()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+      Clear workspace
+    </div>
+    <div class="sidebar-footer">
+      <div class="model-pill">Model: <b>claude-sonnet-4-6</b></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="toolbar">
+      <button class="tool-btn active-tool" id="tb-analyze" onclick="tbSwitch('analyze')">⚡ Analyze</button>
+      <button class="tool-btn" id="tb-findings" onclick="tbSwitch('findings')">🔎 Findings</button>
+      <button class="tool-btn" id="tb-mitre" onclick="tbSwitch('mitre')">🗂 MITRE ATT&CK</button>
+      <div class="tool-sep"></div>
+      <button class="tool-btn" onclick="copyLast()">⎘ Copy last</button>
+      <button class="tool-btn" onclick="exportAll()">↓ Export</button>
+    </div>
+    <div class="content" id="main-content">
+
+      <div id="setup-card" class="setup-card">
+        <div class="setup-title">⚙ API KEY REQUIRED</div>
+        <div class="setup-body">Paste your Anthropic API key to activate Sentinel. Stored in memory only — never persisted or sent anywhere except the official Anthropic API at api.anthropic.com.</div>
+        <div class="setup-row">
+          <input class="setup-input" id="api-input" type="password" placeholder="sk-ant-api03-..." />
+          <button class="setup-save" onclick="saveKey()">Activate</button>
+        </div>
+        <div style="font-family:var(--mono);font-size:10px;color:#92400e;margin-top:6px">Free tier: ~5 req/min · console.anthropic.com</div>
+      </div>
+
+      <div class="analyzer-card" id="analyzer-card">
+        <div class="analyzer-header">
+          <div class="analyzer-title">
+            <div class="dot"></div>
+            <span id="analyzer-title-text">Vulnerability scan</span>
+          </div>
+          <span id="mode-badge" class="badge badge-blue">VULN</span>
+        </div>
+        <div class="mode-chips" id="mode-chips">
+          <div class="chip on" onclick="selChip(this,'network')">Network</div>
+          <div class="chip" onclick="selChip(this,'web')">Web app</div>
+          <div class="chip" onclick="selChip(this,'infra')">Infrastructure</div>
+          <div class="chip" onclick="selChip(this,'cloud')">Cloud config</div>
+          <div class="chip" onclick="selChip(this,'api')">API</div>
+          <div class="chip" onclick="selChip(this,'iot')">IoT / embedded</div>
+        </div>
+        <div class="analyzer-input-wrap">
+          <textarea class="ai" id="main-input" placeholder="Describe your system, paste config, code snippet, log, or URL to analyze…" rows="4"></textarea>
+          <button class="run-btn" id="run-btn" onclick="runAnalysis()">▶ Analyze</button>
+        </div>
+      </div>
+
+      <div id="results-area"></div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="rp-header">
+      <span>FINDINGS</span>
+      <span id="findings-count" style="color:var(--accent)">0</span>
+    </div>
+    <div class="score-ring-wrap" id="score-section" style="display:none">
+      <div class="score-label">RISK SCORE</div>
+      <div class="score-ring">
+        <svg viewBox="0 0 72 72">
+          <circle cx="36" cy="36" r="30" fill="none" stroke="#e2e6ef" stroke-width="6"/>
+          <circle cx="36" cy="36" r="30" fill="none" stroke="#dc2626" stroke-width="6"
+            stroke-dasharray="188.5" id="score-arc" stroke-dashoffset="188.5"
+            stroke-linecap="round" transform="rotate(-90 36 36)" style="transition:stroke-dashoffset .6s"/>
+        </svg>
+      </div>
+      <div class="score-number" id="score-num">—</div>
+      <div class="score-desc" id="score-desc">Run an analysis</div>
+      <div class="score-bars" id="score-bars"></div>
+    </div>
+    <div class="rp-content" id="findings-panel">
+      <div class="empty-rp">
+        <div class="empty-icon">🔒</div>
+        Findings appear here after each analysis.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-bar">
+  Sentinel is for authorized security testing and educational use only. Always obtain proper permission before analyzing any system or network.
+</div>
+
+<script>
+let apiKey = '';
+let currentView = 'vuln';
+let currentChip = 'network';
+let allResults = [];
+let totalFindings = 0;
+let lastResult = '';
+
+const VIEW_CONFIG = {
+  vuln: {
+    title: 'Vulnerability scan',
+    badge: 'VULN',
+    badgeClass: 'badge-red',
+    chips: ['Network','Web app','Infrastructure','Cloud config','API','IoT / embedded'],
+    chipVals: ['network','web','infra','cloud','api','iot'],
+    placeholder: 'Describe the target system, paste config files, service banners, or Nmap output to analyze…'
+  },
+  code: {
+    title: 'Code security review',
+    badge: 'CODE',
+    badgeClass: 'badge-purple',
+    chips: ['Python','JavaScript','PHP','Java','C / C++','SQL','Bash','Go'],
+    chipVals: ['python','javascript','php','java','c','sql','bash','go'],
+    placeholder: 'Paste the code snippet or function you want reviewed for security issues…'
+  },
+  log: {
+    title: 'Log analysis',
+    badge: 'LOG',
+    badgeClass: 'badge-amber',
+    chips: ['Syslog','Apache / Nginx','Auth log','Windows Event','Firewall','SIEM'],
+    chipVals: ['syslog','apache','auth','windows','firewall','siem'],
+    placeholder: 'Paste log lines or a log excerpt to detect anomalies, attacks, or suspicious events…'
+  },
+  threat: {
+    title: 'Threat modeling',
+    badge: 'THREAT',
+    badgeClass: 'badge-red',
+    chips: ['STRIDE','PASTA','Attack tree','Data flow','Cloud arch','API gateway'],
+    chipVals: ['stride','pasta','attack','dfd','cloud','api'],
+    placeholder: 'Describe your system architecture, data flows, or paste a diagram description for STRIDE/PASTA analysis…'
+  },
+  phish: {
+    title: 'Phishing detector',
+    badge: 'PHISH',
+    badgeClass: 'badge-amber',
+    chips: ['Email headers','URL','Email body','SMS','Attachment name','Social eng'],
+    chipVals: ['headers','url','body','sms','attachment','social'],
+    placeholder: 'Paste email headers, URL, message body, or SMS text to detect phishing indicators…'
+  },
+  policy: {
+    title: 'Security policy reviewer',
+    badge: 'POLICY',
+    badgeClass: 'badge-blue',
+    chips: ['Password policy','IAM / RBAC','Network ACL','Data retention','Incident response','BYOD'],
+    chipVals: ['password','iam','acl','retention','ir','byod'],
+    placeholder: 'Paste your security policy, configuration rule, or access control document to review for gaps and compliance issues…'
+  },
+  cvss: {
+    title: 'CVSS scorer',
+    badge: 'CVSS',
+    badgeClass: 'badge-purple',
+    chips: ['CVSS 3.1','CVSS 4.0','Base metrics','Temporal','Environmental','Quick score'],
+    chipVals: ['cvss31','cvss40','base','temporal','environmental','quick'],
+    placeholder: 'Describe the vulnerability in detail — attack vector, complexity, privileges required, impact — to receive a CVSS score and vector string…'
+  },
+  ioc: {
+    title: 'IOC extractor',
+    badge: 'IOC',
+    badgeClass: 'badge-blue',
+    chips: ['All IOCs','IPs & domains','Hashes','URLs','Email addresses','YARA rules'],
+    chipVals: ['all','ipdomain','hash','url','email','yara'],
+    placeholder: 'Paste a threat report, malware analysis, incident notes, or raw text to extract indicators of compromise…'
+  }
+};
+
+const PROMPTS = {
+  vuln: (input, chip) => `You are a senior penetration tester and vulnerability analyst. Analyze the following ${chip} target for security vulnerabilities.
+
+Input:
+${input}
+
+Respond in this exact format:
+
+**EXECUTIVE SUMMARY**
+[2 sentences on overall risk posture]
+
+**VULNERABILITIES FOUND**
+[List each vulnerability as:
+SEVERITY: [CRITICAL/HIGH/MEDIUM/LOW/INFO]
+NAME: [CVE or descriptive name]
+DESCRIPTION: [what the issue is]
+IMPACT: [what an attacker can do]
+REMEDIATION: [specific fix]
+---]
+
+**ATTACK SURFACE**
+[Key exposed attack surface points]
+
+**MITRE ATT&CK MAPPING**
+[Map findings to ATT&CK tactics and techniques with IDs like T1190]
+
+**RISK SCORE**
+[Single integer 0-100 overall risk score followed by component scores:]
+Confidentiality: [0-100]
+Integrity: [0-100]
+Availability: [0-100]
+Exploitability: [0-100]
+
+**FINDINGS JSON**
+{"findings":[{"type":"vulnerability","severity":"critical|high|medium|low|info","title":"...","detail":"..."}]}
+
+Be specific, technical, and actionable. Flag only real security issues.`,
+
+  code: (input, chip) => `You are a security engineer specializing in secure code review for ${chip}.
+
+Code to review:
+${input}
+
+Respond in this format:
+
+**SECURITY SUMMARY**
+[Overall security posture of this code in 2 sentences]
+
+**VULNERABILITIES**
+[For each issue:]
+SEVERITY: [CRITICAL/HIGH/MEDIUM/LOW/INFO]
+CWE: [CWE-XXX if applicable]
+LINE / LOCATION: [where in the code]
+ISSUE: [what is wrong]
+EXPLOIT SCENARIO: [how an attacker abuses this]
+FIX: [corrected code or specific remediation]
+---
+
+**SECURE CODING VIOLATIONS**
+[OWASP Top 10 or language-specific best practice violations]
+
+**MITRE ATT&CK MAPPING**
+[Relevant techniques]
+
+**RISK SCORE**
+Overall: [0-100]
+Confidentiality: [0-100]
+Integrity: [0-100]
+Availability: [0-100]
+Exploitability: [0-100]
+
+**FINDINGS JSON**
+{"findings":[{"type":"code_vulnerability","severity":"critical|high|medium|low|info","title":"...","detail":"..."}]}`,
+
+  log: (input, chip) => `You are a SOC analyst and threat hunter. Analyze the following ${chip} log data for security events, anomalies, and attack indicators.
+
+Log data:
+${input}
+
+Respond in this format:
+
+**THREAT SUMMARY**
+[What happened — a concise narrative of the security events detected]
+
+**SECURITY EVENTS DETECTED**
+[For each event:]
+SEVERITY: [CRITICAL/HIGH/MEDIUM/LOW/INFO]
+TYPE: [attack type or anomaly]
+TIMESTAMP: [if visible]
+INDICATOR: [the specific log line or pattern]
+INTERPRETATION: [what this means]
+---
+
+**ATTACK CHAIN**
+[If an attack is underway, map the kill chain stages]
+
+**MITRE ATT&CK MAPPING**
+[Tactics and techniques observed with T-IDs]
+
+**RECOMMENDED ACTIONS**
+[Immediate response steps]
+
+**RISK SCORE**
+Overall: [0-100]
+Confidentiality: [0-100]
+Integrity: [0-100]
+Availability: [0-100]
+Exploitability: [0-100]
+
+**FINDINGS JSON**
+{"findings":[{"type":"log_event","severity":"critical|high|medium|low|info","title":"...","detail":"..."}]}`,
+
+  threat: (input, chip) => `You are a threat modeler using the ${chip.toUpperCase()} methodology. Analyze the following system for threats.
+
+System description:
+${input}
+
+Respond in this format:
+
+**THREAT MODEL SUMMARY**
+[System overview and key security concerns]
+
+**THREAT ENUMERATION**
+[For each threat:]
+THREAT: [name]
+CATEGORY: [STRIDE category or equivalent]
+AFFECTED COMPONENT: [which part of the system]
+ATTACK SCENARIO: [how an attacker exploits this]
+LIKELIHOOD: [HIGH/MEDIUM/LOW]
+IMPACT: [HIGH/MEDIUM/LOW]
+MITIGATION: [countermeasure]
+---
+
+**TRUST BOUNDARIES**
+[Identified trust boundaries and crossing points]
+
+**DATA FLOW RISKS**
+[Data flows that present security risks]
+
+**MITRE ATT&CK MAPPING**
+[Mapped techniques]
+
+**RISK SCORE**
+Overall: [0-100]
+Confidentiality: [0-100]
+Integrity: [0-100]
+Availability: [0-100]
+Exploitability: [0-100]
+
+**FINDINGS JSON**
+{"findings":[{"type":"threat","severity":"critical|high|medium|low|info","title":"...","detail":"..."}]}`,
+
+  phish: (input, chip) => `You are a cybersecurity analyst specializing in phishing and social engineering detection. Analyze the following ${chip} for phishing indicators.
+
+Input:
+${input}
+
+Respond in this format:
+
+**PHISHING VERDICT**
+[PHISHING / SUSPICIOUS / LEGITIMATE / INCONCLUSIVE] — [confidence %] confidence
+[2 sentence explanation]
+
+**INDICATORS OF COMPROMISE**
+[For each indicator:]
+SEVERITY: [CRITICAL/HIGH/MEDIUM/LOW/INFO]
+INDICATOR TYPE: [domain spoof / urgency / credential harvest / etc]
+EVIDENCE: [the specific text or element]
+EXPLANATION: [why this is suspicious]
+---
+
+**TECHNICAL ANALYSIS**
+[Header anomalies, domain analysis, URL obfuscation, sender spoofing]
+
+**SOCIAL ENGINEERING TACTICS**
+[Psychological manipulation techniques used]
+
+**RECOMMENDED ACTION**
+[What the recipient should do]
+
+**RISK SCORE**
+Overall: [0-100]
+Confidence: [0-100]
+Sophistication: [0-100]
+Likelihood of success: [0-100]
+
+**FINDINGS JSON**
+{"findings":[{"type":"phishing_indicator","severity":"critical|high|medium|low|info","title":"...","detail":"..."}]}`,
+
+  policy: (input, chip) => `You are a security compliance expert and policy auditor reviewing a ${chip} policy.
+
+Policy to review:
+${input}
+
+Respond in this format:
+
+**POLICY ASSESSMENT**
+[Overall quality rating: STRONG / ADEQUATE / WEAK / NON-COMPLIANT — with 2-sentence rationale]
+
+**GAPS AND ISSUES**
+[For each issue:]
+SEVERITY: [CRITICAL/HIGH/MEDIUM/LOW/INFO]
+SECTION: [which part of the policy]
+ISSUE: [what's missing or wrong]
+COMPLIANCE RISK: [what standards/regulations this violates: ISO 27001, NIST, GDPR, etc]
+RECOMMENDATION: [specific policy language or fix]
+---
+
+**COMPLIANCE MAPPING**
+[Map policy to NIST CSF, ISO 27001, CIS Controls, or relevant framework]
+
+**MISSING CONTROLS**
+[Critical controls not addressed by the policy]
+
+**RISK SCORE**
+Overall: [0-100]
+Compliance gap: [0-100]
+Enforcement risk: [0-100]
+Audit exposure: [0-100]
+
+**FINDINGS JSON**
+{"findings":[{"type":"policy_gap","severity":"critical|high|medium|low|info","title":"...","detail":"..."}]}`,
+
+  cvss: (input, chip) => `You are a vulnerability researcher scoring a vulnerability using ${chip === 'cvss40' ? 'CVSS 4.0' : 'CVSS 3.1'}.
+
+Vulnerability description:
+${input}
+
+Respond in this format:
+
+**CVSS SCORE**
+Base Score: [X.X]
+Severity Rating: [NONE/LOW/MEDIUM/HIGH/CRITICAL]
+Vector String: [CVSS:3.1/AV:.../...]
+
+**METRIC BREAKDOWN**
+Attack Vector (AV): [N/A/L/P] — [Network/Adjacent/Local/Physical] — [rationale]
+Attack Complexity (AC): [L/H] — [rationale]
+Privileges Required (PR): [N/L/H] — [rationale]
+User Interaction (UI): [N/R] — [rationale]
+Scope (S): [U/C] — [rationale]
+Confidentiality (C): [N/L/H] — [rationale]
+Integrity (I): [N/L/H] — [rationale]
+Availability (A): [N/L/H] — [rationale]
+
+**TEMPORAL METRICS**
+[If information is available, score temporal metrics]
+
+**COMPARABLE CVES**
+[3 CVEs with similar scores for context]
+
+**REMEDIATION PRIORITY**
+[Patch urgency and recommended timeline]
+
+**RISK SCORE**
+Overall: [0-100]
+Confidentiality: [0-100]
+Integrity: [0-100]
+Availability: [0-100]
+Exploitability: [0-100]
+
+**FINDINGS JSON**
+{"findings":[{"type":"cvss_finding","severity":"critical|high|medium|low|info","title":"...","detail":"..."}]}`,
+
+  ioc: (input, chip) => `You are a threat intelligence analyst. Extract all indicators of compromise from the following text, focusing on ${chip === 'all' ? 'all IOC types' : chip}.
+
+Input:
+${input}
+
+Respond in this format:
+
+**IOC SUMMARY**
+[Count of each IOC type found and overall threat context]
+
+**EXTRACTED INDICATORS**
+[For each IOC:]
+TYPE: [IP / Domain / URL / Hash / Email / File / Registry / YARA / Other]
+VALUE: [the indicator — defang IPs and URLs with [.]]
+CONFIDENCE: [HIGH/MEDIUM/LOW]
+CONTEXT: [where it appeared and what it likely represents]
+THREAT ACTOR / FAMILY: [if attributable]
+---
+
+**THREAT INTELLIGENCE CONTEXT**
+[Known threat campaigns or malware families associated with these IOCs]
+
+**YARA RULE SKELETON**
+[If hashes or strings are present, provide a YARA rule skeleton]
+
+**RISK SCORE**
+Overall: [0-100]
+Attribution confidence: [0-100]
+Threat actor sophistication: [0-100]
+Active threat likelihood: [0-100]
+
+**FINDINGS JSON**
+{"findings":[{"type":"ioc","severity":"critical|high|medium|low|info","title":"...","detail":"..."}]}`
+};
+
+function saveKey() {
+  const val = document.getElementById('api-input').value.trim();
+  if (!val.startsWith('sk-')) { showFlash('Invalid key format', true); return; }
+  apiKey = val;
+  document.getElementById('setup-card').style.display = 'none';
+  document.getElementById('api-badge').textContent = 'API ACTIVE';
+  document.getElementById('api-badge').className = 'hbadge hbadge-green';
+  showFlash('API key activated');
+}
+
+function showFlash(msg, err) {
+  const b = document.getElementById('api-badge');
+  const prev = [b.textContent, b.className];
+  b.textContent = msg.toUpperCase();
+  b.className = 'hbadge ' + (err ? 'hbadge-' : 'hbadge-') + (err ? 'badge-red' : 'hbadge-green');
+  b.style.background = err ? 'var(--red-bg)' : 'var(--green-bg)';
+  b.style.color = err ? 'var(--red)' : 'var(--green)';
+  b.style.borderColor = err ? 'var(--red-border)' : 'var(--green-border)';
+  setTimeout(() => { b.textContent = prev[0]; b.className = prev[1]; b.style = ''; }, 2000);
+}
+
+function setView(view, el) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  el.classList.add('active');
+  currentView = view;
+  const cfg = VIEW_CONFIG[view];
+  document.getElementById('analyzer-title-text').textContent = cfg.title;
+  const mb = document.getElementById('mode-badge');
+  mb.textContent = cfg.badge;
+  mb.className = 'badge ' + cfg.badgeClass;
+  document.getElementById('main-input').placeholder = cfg.placeholder;
+  const chips = document.getElementById('mode-chips');
+  chips.innerHTML = '';
+  cfg.chips.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'chip' + (i === 0 ? ' on' : '');
+    d.textContent = c;
+    d.onclick = function() { selChip(this, cfg.chipVals[i]); };
+    chips.appendChild(d);
+  });
+  currentChip = cfg.chipVals[0];
+}
+
+function selChip(el, val) {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('on'));
+  el.classList.add('on');
+  currentChip = val;
+}
+
+function tbSwitch(tab) {
+  ['analyze','findings','mitre'].forEach(t => {
+    document.getElementById('tb-'+t).classList.remove('active-tool');
+  });
+  document.getElementById('tb-'+tab).classList.add('active-tool');
+}
+
+async function runAnalysis() {
+  const input = document.getElementById('main-input').value.trim();
+  if (!input) { showFlash('Enter input first', true); return; }
+  if (!apiKey) { showFlash('Set API key first', true); return; }
+
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = '● Running…';
+
+  const area = document.getElementById('results-area');
+  const loader = document.createElement('div');
+  loader.id = 'loader';
+  const bar = document.createElement('div');
+  bar.className = 'loading-bar';
+  loader.innerHTML = `<div class="loading-wrap"><div class="spinner"></div><span class="loading-txt">Claude Sonnet 4.6 is analyzing…</span></div>`;
+  area.prepend(loader);
+  area.prepend(bar);
+
+  const promptFn = PROMPTS[currentView] || PROMPTS.vuln;
+  const prompt = promptFn(input, currentChip);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) { const e = await res.json(); throw new Error(e.error?.message || 'API error ' + res.status); }
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    lastResult = text;
+
+    document.getElementById('loader')?.remove();
+    bar.remove();
+
+    allResults.unshift({ view: currentView, chip: currentChip, input, text, ts: new Date() });
+    renderResult(input, text);
+    parseFindings(text);
+    parseRiskScore(text);
+
+  } catch(e) {
+    document.getElementById('loader')?.remove();
+    bar.remove();
+    const ec = document.createElement('div');
+    ec.className = 'result-block';
+    ec.innerHTML = `<div class="result-top"><div class="result-label">Error</div><div class="badges"><span class="badge badge-red">FAILED</span></div></div><div class="result-body" style="color:var(--red)">${esc(e.message)}</div>`;
+    area.prepend(ec);
+  }
+
+  btn.disabled = false;
+  btn.textContent = '▶ Analyze';
+}
+
+function renderResult(input, text) {
+  const area = document.getElementById('results-area');
+  const cfg = VIEW_CONFIG[currentView];
+  const block = document.createElement('div');
+  block.className = 'result-block';
+  const ts = new Date().toLocaleTimeString();
+  const snippet = input.substring(0,50) + (input.length > 50 ? '…' : '');
+
+  block.innerHTML = `
+    <div class="result-top">
+      <div class="result-label">◈ ${esc(snippet)}</div>
+      <div class="badges">
+        <span class="badge ${cfg.badgeClass}">${cfg.badge}</span>
+        <span class="badge badge-green">COMPLETE</span>
+      </div>
+    </div>
+    <div class="result-body">${formatOutput(text)}</div>
+    <div class="result-footer">
+      <button class="act-btn" onclick="copyText(this)" data-t="${escA(text)}">⎘ Copy</button>
+      <button class="act-btn" onclick="downloadTxt(this)" data-t="${escA(text)}" data-n="${cfg.badge.toLowerCase()}">↓ Download</button>
+      <span class="ts">${ts}</span>
+    </div>`;
+  area.prepend(block);
+}
+
+function formatOutput(text) {
+  return esc(text)
+    .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')
+    .replace(/^(SEVERITY: CRITICAL.*)$/gm, '<span class="r">$1</span>')
+    .replace(/^(SEVERITY: HIGH.*)$/gm, '<span class="a">$1</span>')
+    .replace(/^(SEVERITY: MEDIUM.*)$/gm, '<span class="bl">$1</span>')
+    .replace(/^(SEVERITY: LOW.*)$/gm, '<span class="g">$1</span>')
+    .replace(/^(SEVERITY: INFO.*)$/gm, '<span class="p">$1</span>')
+    .replace(/^(PHISHING VERDICT.*PHISHING.*)$/gm, '<span class="r">$1</span>')
+    .replace(/^(PHISHING VERDICT.*LEGITIMATE.*)$/gm, '<span class="g">$1</span>')
+    .replace(/\n/g, '\n');
+}
+
+function parseFindings(text) {
+  const match = text.match(/\{"findings":\s*\[[\s\S]*?\]\s*\}/);
+  if (!match) return;
+  try {
+    const { findings } = JSON.parse(match[0]);
+    const panel = document.getElementById('findings-panel');
+    if (panel.querySelector('.empty-rp')) panel.innerHTML = '';
+    totalFindings += findings.length;
+    document.getElementById('findings-count').textContent = totalFindings;
+
+    const sevColor = { critical: 'var(--red)', high: 'var(--amber)', medium: 'var(--accent)', low: 'var(--green)', info: 'var(--purple)' };
+    findings.forEach(f => {
+      const card = document.createElement('div');
+      card.className = 'finding-card ' + (f.severity || 'info');
+      card.innerHTML = `<div class="finding-type">${esc(f.type || 'finding')}</div>
+        <div class="finding-val">${esc(f.title)}</div>
+        ${f.detail ? `<div class="finding-sev" style="color:${sevColor[f.severity]||'var(--text3)'}">${esc(f.severity?.toUpperCase() || 'INFO')} — ${esc(f.detail.substring(0,80))}${f.detail.length>80?'…':''}</div>` : ''}`;
+      panel.prepend(card);
+    });
+  } catch(e) {}
+}
+
+function parseRiskScore(text) {
+  const scoreMatch = text.match(/Overall:\s*(\d+)/);
+  if (!scoreMatch) return;
+  const score = parseInt(scoreMatch[1]);
+  document.getElementById('score-section').style.display = 'block';
+  document.getElementById('score-num').textContent = score;
+  const descs = ['Minimal','Low','Moderate','High','Critical'];
+  const colors = ['var(--green)','var(--green)','var(--amber)','var(--red)','var(--red)'];
+  const idx = Math.min(4, Math.floor(score / 20));
+  document.getElementById('score-desc').textContent = descs[idx];
+  document.getElementById('score-num').style.color = colors[idx];
+  const arc = document.getElementById('score-arc');
+  const circumference = 188.5;
+  arc.style.strokeDashoffset = circumference - (score / 100 * circumference);
+  arc.style.stroke = colors[idx];
+
+  const components = ['Confidentiality','Integrity','Availability','Exploitability'];
+  const barColors = ['var(--accent)','var(--amber)','var(--red)','var(--purple)'];
+  const bars = document.getElementById('score-bars');
+  bars.innerHTML = '';
+  components.forEach((c, i) => {
+    const r = text.match(new RegExp(c + ':\\s*(\\d+)'));
+    if (!r) return;
+    const v = parseInt(r[1]);
+    const row = document.createElement('div');
+    row.className = 'score-row';
+    row.innerHTML = `<div class="score-row-label">${c.substring(0,5)}.</div>
+      <div class="score-bar-bg"><div class="score-bar-fill" style="width:${v}%;background:${barColors[i]}"></div></div>
+      <div class="score-row-val">${v}</div>`;
+    bars.appendChild(row);
+  });
+}
+
+function copyText(btn) {
+  navigator.clipboard.writeText(btn.dataset.t).then(() => {
+    const p = btn.textContent;
+    btn.textContent = '✓ Copied';
+    setTimeout(() => btn.textContent = p, 1500);
+  });
+}
+
+function copyLast() {
+  if (!lastResult) { showFlash('No result yet', true); return; }
+  navigator.clipboard.writeText(lastResult).then(() => showFlash('Copied'));
+}
+
+function downloadTxt(btn) {
+  const blob = new Blob([btn.dataset.t], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `sentinel_${btn.dataset.n}_${Date.now()}.txt`;
+  a.click();
+}
+
+function exportAll() {
+  if (!allResults.length) { showFlash('No results yet', true); return; }
+  const text = allResults.map(r =>
+    `${'='.repeat(60)}\nSENTINEL REPORT — ${r.view.toUpperCase()} / ${r.chip.toUpperCase()}\n${r.ts.toISOString()}\n\nINPUT:\n${r.input}\n\nANALYSIS:\n${r.text}\n`
+  ).join('\n');
+  const blob = new Blob([text], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `sentinel_report_${Date.now()}.txt`;
+  a.click();
+}
+
+function clearAll() {
+  document.getElementById('results-area').innerHTML = '';
+  document.getElementById('findings-panel').innerHTML = '<div class="empty-rp"><div class="empty-icon">🔒</div>Findings appear here after each analysis.</div>';
+  document.getElementById('score-section').style.display = 'none';
+  allResults = [];
+  totalFindings = 0;
+  lastResult = '';
+  document.getElementById('findings-count').textContent = '0';
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escA(s) {
+  return String(s).replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+document.getElementById('main-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) runAnalysis();
+});
+</script>
+</body>
+</html>
